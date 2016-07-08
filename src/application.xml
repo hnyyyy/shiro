@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+	<!-- 配置shiro的SecurityManager.shiro最核心的组件 -->
+    <bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+        <property name="cacheManager" ref="cacheManager"/>
+        <property name="realm" ref="realm"/>
+    </bean>
+    
+	<bean class="com.atguigu.shiro.MyService"></bean>
+	
+	<!-- 配置CacheManager 必须加入ehcache的jar包 -->
+    <bean id="cacheManager" class="org.apache.shiro.cache.ehcache.EhCacheManager">
+        <property name="cacheManagerConfigFile" value="classpath:ehcache.xml"/>
+    </bean>
+	
+	<!-- 配置Realm 创建继承AuthorizingRealm的类即可，并把其配置到IOC容器中 -->
+	<bean id="realm" class="com.atguigu.shiro.MyRealm">
+		<property name="credentialsMatcher">
+			<bean class="org.apache.shiro.authc.credential.HashedCredentialsMatcher">
+				<property name="hashAlgorithmName" value="MD5"/>
+				<property name="hashIterations" value="1024"/>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 可以自动调用配置在IOC容器中的shiro bean的init的destory方法 -->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+	
+	<!-- 可以在Spring中使用shiro的权限注解，但必须在配置了LifecycleBeanPostProcessor之后才可以使用 -->
+    <bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator"
+          depends-on="lifecycleBeanPostProcessor"/>
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+	
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <property name="loginUrl" value="/login.jsp"/>
+        <!-- 没有授权的页面 -->
+        <property name="unauthorizedUrl" value="/unauthorized.jsp"/>
+		<!-- 配置实际上需要拦截的URL anon：可以被匿名访问。即使没有登录的情况下，也可以访问
+			authc：必须登录后才可以访问
+			URL权限采取第一次匹配优先的方式
+		 -->
+        <property name="filterChainDefinitions">
+            <value>
+                /login.jsp = anon
+                /** = authc
+            </value>
+        </property>
+    </bean>
+	
+</beans>
